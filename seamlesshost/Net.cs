@@ -29,7 +29,10 @@ public static class Net
     public static HttpListenerRequest req;
     public static HttpListenerResponse res;
 
-    static HttpListener listener;
+    static HttpListener httplistener;
+    static TcpListener tcplistener;
+
+    static StartupData data = JsonConvert.DeserializeObject<StartupData>(File.ReadAllText("../../../startup.json"));
 
     static void SendString(string responseString)
     {
@@ -79,7 +82,7 @@ public static class Net
 
     static void WaitForReq()
     {
-        ctx = listener.GetContext();
+        ctx = httplistener.GetContext();
         req = ctx.Request;
         res = ctx.Response;
 
@@ -99,13 +102,13 @@ public static class Net
         }
     }
 
-    public static void Listen()
+    public static void ListenHttp()
     {
-        StartupData data = JsonConvert.DeserializeObject<StartupData>(File.ReadAllText("../../../startup.json"));
+        
 
-        listener = new HttpListener();
-        listener.Prefixes.Add($"http://*:{data.port}/");
-        listener.Start();
+        httplistener = new HttpListener();
+        httplistener.Prefixes.Add($"http://*:{data.port}/");
+        httplistener.Start();
 
         Console.WriteLine($"Listening on port {data.port}");
 
@@ -113,5 +116,45 @@ public static class Net
         {
             WaitForReq();
         }
+    }
+
+    public static void WaitReq()
+    {
+        tcplistener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), tcplistener);
+        Console.WriteLine("Connected!");
+    }
+
+    public static void DoAcceptTcpClientCallback(IAsyncResult ar)
+    {
+        // Get the listener that handles the client request.
+        TcpListener listener = (TcpListener)ar.AsyncState;
+
+        // End the operation and display the received data on
+        // the console.
+        TcpClient client = listener.EndAcceptTcpClient(ar);
+
+        // Process the connection here. (Add the client to a
+        // server table, read data, etc.)
+        Console.WriteLine("Client connected completed");
+
+        // Signal the calling thread to continue.
+        tcplistener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), tcplistener);
+    }
+
+    public static void ListenTcp()
+    {
+        tcplistener = new TcpListener(data.port);
+        tcplistener.Start();
+        Console.WriteLine($"Listening on port {data.port} TCP");
+        WaitReq();
+        while (true)
+        {
+            
+        }
+    }
+
+    public static void Listen()
+    {
+        ListenTcp();
     }
 }
