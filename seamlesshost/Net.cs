@@ -93,7 +93,7 @@ public static class Net
 
         switch (req.Headers["Type"])
         {
-            case "Create": Auth.Create(); return;
+            case "Create": Close(Auth.Create()); return;
 
             default: Close(Error.InvalidType); return;
         }
