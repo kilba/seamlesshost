@@ -32,6 +32,8 @@ public static class Net
     static HttpListener httplistener;
     static TcpListener tcplistener;
 
+    static List<TcpClient> tcpclient = new List<TcpClient>();
+
     static StartupData data = JsonConvert.DeserializeObject<StartupData>(File.ReadAllText("../../../startup.json"));
 
     static void SendString(string responseString)
@@ -133,12 +135,28 @@ public static class Net
         // the console.
         TcpClient client = listener.EndAcceptTcpClient(ar);
 
+        tcpclient.Add(client);
+
+        string message = receiveMessage(client);
+
+        Console.WriteLine($"This is what the peer sent to you: {data}");
         // Process the connection here. (Add the client to a
         // server table, read data, etc.)
-        Console.WriteLine("Client connected completed");
+        Console.WriteLine("Client connected completed (Amount of clients : " + tcpclient.Count() + " )");
 
         // Signal the calling thread to continue.
+        
         tcplistener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), tcplistener);
+    }
+
+    public static string receiveMessage(TcpClient client)
+    {
+        NetworkStream netStream = client.GetStream();
+
+        byte[] receiveBuffer = new byte[1024];
+        int bytesReceived = netStream.Read(receiveBuffer);
+        string data = Encoding.UTF8.GetString(receiveBuffer.AsSpan(0, bytesReceived));
+        return data;
     }
 
     public static void ListenTcp()
